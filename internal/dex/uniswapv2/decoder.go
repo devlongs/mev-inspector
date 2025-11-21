@@ -12,8 +12,8 @@ import (
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/rs/zerolog/log"
 
-	"github.com/longs/mev-inspector/internal/eth"
-	"github.com/longs/mev-inspector/pkg/types"
+	"github.com/devlongs/mev-inspector/internal/eth"
+	"github.com/devlongs/mev-inspector/pkg/types"
 )
 
 // Uniswap V2 Swap event signature

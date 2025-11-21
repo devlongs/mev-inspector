@@ -163,19 +163,39 @@ func weiToEther(wei *big.Int) string {
 	return fmt.Sprintf("%.6f", ether)
 }
 
-// buildPathString creates a human-readable path string
+// buildPathString creates a human-readable path string showing token flow
 func buildPathString(swaps []types.Swap) string {
 	if len(swaps) == 0 {
 		return ""
 	}
 
-	path := swaps[0].Token0.Hex()[:10]
-	for _, swap := range swaps {
-		// Determine which token is output
-		if swap.Amount0Out.Sign() > 0 {
-			path += " -> " + swap.Token0.Hex()[:10]
-		} else if swap.Amount1Out.Sign() > 0 {
-			path += " -> " + swap.Token1.Hex()[:10]
+	// Determine the input token for the first swap
+	var path string
+	for i, swap := range swaps {
+		var tokenIn, tokenOut string
+
+		// Determine token in/out based on amounts
+		if swap.Amount0In != nil && swap.Amount0In.Sign() > 0 {
+			tokenIn = swap.Token0.Hex()[:10]
+			tokenOut = swap.Token1.Hex()[:10]
+		} else if swap.Amount1In != nil && swap.Amount1In.Sign() > 0 {
+			tokenIn = swap.Token1.Hex()[:10]
+			tokenOut = swap.Token0.Hex()[:10]
+		} else {
+			// Fallback: check output amounts
+			if swap.Amount0Out != nil && swap.Amount0Out.Sign() > 0 {
+				tokenIn = swap.Token1.Hex()[:10]
+				tokenOut = swap.Token0.Hex()[:10]
+			} else {
+				tokenIn = swap.Token0.Hex()[:10]
+				tokenOut = swap.Token1.Hex()[:10]
+			}
+		}
+
+		if i == 0 {
+			path = tokenIn + " -> " + tokenOut
+		} else {
+			path += " -> " + tokenOut
 		}
 	}
 

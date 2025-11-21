@@ -25,12 +25,13 @@ type RPCConfig struct {
 
 // InspectorConfig holds inspector-specific settings
 type InspectorConfig struct {
-	PollInterval    time.Duration
-	BatchSize       int
-	StartBlock      uint64
-	WorkerCount     int
-	EnableUniswapV2 bool
-	EnableUniswapV3 bool
+	PollInterval       time.Duration
+	BatchSize          int
+	StartBlock         uint64
+	WorkerCount        int
+	EnableUniswapV2    bool
+	EnableUniswapV3    bool
+	OnlyProfitable     bool // Only show arbitrages with positive net profit
 }
 
 // LoggingConfig holds logging configuration
@@ -56,6 +57,7 @@ func Load() (*Config, error) {
 	v.SetDefault("inspector.worker_count", 4)
 	v.SetDefault("inspector.enable_uniswap_v2", true)
 	v.SetDefault("inspector.enable_uniswap_v3", true)
+	v.SetDefault("inspector.only_profitable", false)
 
 	v.SetDefault("logging.level", "info")
 	v.SetDefault("logging.format", "console")
@@ -87,12 +89,13 @@ func Load() (*Config, error) {
 			RequestTimeout: requestTimeout,
 		},
 		Inspector: InspectorConfig{
-			PollInterval:    pollInterval,
-			BatchSize:       v.GetInt("inspector.batch_size"),
-			StartBlock:      v.GetUint64("inspector.start_block"),
-			WorkerCount:     v.GetInt("inspector.worker_count"),
-			EnableUniswapV2: v.GetBool("inspector.enable_uniswap_v2"),
-			EnableUniswapV3: v.GetBool("inspector.enable_uniswap_v3"),
+			PollInterval:       pollInterval,
+			BatchSize:          v.GetInt("inspector.batch_size"),
+			StartBlock:         v.GetUint64("inspector.start_block"),
+			WorkerCount:        v.GetInt("inspector.worker_count"),
+			EnableUniswapV2:    v.GetBool("inspector.enable_uniswap_v2"),
+			EnableUniswapV3:    v.GetBool("inspector.enable_uniswap_v3"),
+			OnlyProfitable:     v.GetBool("inspector.only_profitable"),
 		},
 		Logging: LoggingConfig{
 			Level:  v.GetString("logging.level"),

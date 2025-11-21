@@ -184,6 +184,10 @@ func (i *Inspector) processBlockRange(ctx context.Context, fromBlock, toBlock ui
 		}
 
 		for _, arb := range arbitrages {
+			// Filter by profitability if configured
+			if i.cfg.Inspector.OnlyProfitable && !i.detector.IsProfitable(&arb) {
+				continue
+			}
 			i.logger.LogArbitrage(&arb)
 			totalArbitrages++
 		}

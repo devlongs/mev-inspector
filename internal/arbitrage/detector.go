@@ -9,8 +9,8 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/rs/zerolog/log"
 
-	"github.com/longs/mev-inspector/internal/eth"
-	"github.com/longs/mev-inspector/pkg/types"
+	"github.com/devlongs/mev-inspector/internal/eth"
+	"github.com/devlongs/mev-inspector/pkg/types"
 )
 
 // WETH address on mainnet
@@ -40,10 +40,12 @@ func (d *Detector) DetectArbitrage(ctx context.Context, txHash common.Hash, swap
 	})
 
 	var arbitrages []types.Arbitrage
+	var foundCyclic bool
 
-	// Detect cyclic arbitrage (A -> B -> C -> A)
+	// Detect cyclic arbitrage (A -> B -> C -> A) - preferred detection method
 	cyclicArb := d.detectCyclicArbitrage(swaps)
 	if cyclicArb != nil {
+		foundCyclic = true
 		// Fetch transaction details for gas info
 		if receipt, err := d.client.TransactionReceipt(ctx, txHash); err == nil {
 			cyclicArb.GasUsed = receipt.GasUsed
@@ -56,18 +58,20 @@ func (d *Detector) DetectArbitrage(ctx context.Context, txHash common.Hash, swap
 		arbitrages = append(arbitrages, *cyclicArb)
 	}
 
-	// Detect cross-DEX arbitrage (same pair, different pools)
-	crossDexArbs := d.detectCrossDEXArbitrage(swaps)
-	for _, arb := range crossDexArbs {
-		if receipt, err := d.client.TransactionReceipt(ctx, txHash); err == nil {
-			arb.GasUsed = receipt.GasUsed
-			if tx, _, err := d.client.GetTransaction(ctx, txHash); err == nil {
-				arb.GasPrice = tx.GasPrice()
-				gasCost := new(big.Int).Mul(big.NewInt(int64(arb.GasUsed)), arb.GasPrice)
-				arb.NetProfitWei = new(big.Int).Sub(arb.Profit, gasCost)
+	// Only detect cross-DEX if no cyclic arbitrage found (avoid duplicates)
+	if !foundCyclic {
+		crossDexArbs := d.detectCrossDEXArbitrage(swaps)
+		for _, arb := range crossDexArbs {
+			if receipt, err := d.client.TransactionReceipt(ctx, txHash); err == nil {
+				arb.GasUsed = receipt.GasUsed
+				if tx, _, err := d.client.GetTransaction(ctx, txHash); err == nil {
+					arb.GasPrice = tx.GasPrice()
+					gasCost := new(big.Int).Mul(big.NewInt(int64(arb.GasUsed)), arb.GasPrice)
+					arb.NetProfitWei = new(big.Int).Sub(arb.Profit, gasCost)
+				}
 			}
+			arbitrages = append(arbitrages, arb)
 		}
-		arbitrages = append(arbitrages, arb)
 	}
 
 	return arbitrages, nil
